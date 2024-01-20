@@ -82,7 +82,7 @@ air_quality_ranges = {
     (10, 300): "Peligroso",
     (300, 400): "Moderado",
     (400, 500): "Bueno",
-    (500, 1000): "Insalubre",
+    (500, 10000): "Insalubre",
 }
 
 humidity_ranges = {

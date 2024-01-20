@@ -7,11 +7,11 @@ from edge_module_realtime.real_time_data_sensor import real_time_update_data_tas
 from functools import partial
 
 # Definir una tarea parcial para el almacenamiento de datos
-partial_storage_task = partial(storage_task, 'humedad', 'data-history')
+partial_storage_task = partial(storage_task, 'airQuality', 'data-history')
 
 # Crear e iniciar el scheduler
 scheduler = AsyncIOScheduler()
-scheduler.add_job(partial_storage_task, 'cron', hour='18', minute='16')
+scheduler.add_job(partial_storage_task, 'cron', hour='22,13,18,23', minute='5,0,0,0')
 scheduler.add_job(real_time_update_data_task, 'interval', minutes=5)
 scheduler.start()
 
