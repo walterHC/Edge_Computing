@@ -4,6 +4,7 @@ import asyncio
 import time
 import datetime
 import json
+import pytz
 
 async def process_sensor_data(device_data, sensor_type, collection_name):
     user_id = device_data.get('userID')
@@ -29,15 +30,18 @@ async def process_sensor_data(device_data, sensor_type, collection_name):
     message = json.loads(message_received)
     value = message[sensor_type]
 
+    lima_tz = pytz.timezone('America/Lima')
+
     # Preparar los datos para Firebase
     data = {
         "deviceID": device_id,
         "value": value,
-        "timestamp": datetime.datetime.now(),
+        "timestamp": datetime.datetime.now(lima_tz).strftime('%Y-%m-%d %H:%M:%S'),
     }
 
     # Almacenar en Firebase
     db.collection(collection_name).add(data)
+    print(f'Datos almacenados en la colección {collection_name}: {data}')
 
 async def storage_task(sensor_type, collection_name):
     devices_ref = db.collection('devices')

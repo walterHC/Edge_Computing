@@ -14,7 +14,7 @@ partial_storage_task = partial(storage_task, 'aire', 'data-history')
 scheduler = AsyncIOScheduler()
 # scheduler.add_job(partial_storage_task, 'cron', hour='22,13,18,23', minute='0,0,0,0')
 scheduler.add_job(partial_storage_task, 'interval', minutes=5)
-scheduler.add_job(real_time_update_data_task, 'interval', minutes=1)
+scheduler.add_job(real_time_update_data_task, 'interval', seconds=30)
 scheduler.start()
 
 # Función para mantener el script ejecutándose indefinidamente

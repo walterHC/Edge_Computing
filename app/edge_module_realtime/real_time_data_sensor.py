@@ -2,8 +2,12 @@ import asyncio
 import datetime
 import random
 import json
-from config.firebase_config import db, ref
+import pytz
+from config.firebase_config import db, ref, messaging
 from edge_module_mqtt.mqtt_client import MQTTClient, MQTT_CONFIG
+
+last_readings = {}
+PELIGROSO_THRESHOLD = 2000
 
 async def subscribe_mqtt(device_id, user_id):
     mqtt_client = MQTTClient(userID=user_id, topic=f"esp32/{device_id}/pub", **MQTT_CONFIG)
@@ -20,6 +24,18 @@ async def subscribe_mqtt(device_id, user_id):
     mqtt_client.stop()
     return message
 
+async def send_alert_notification(device_token):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title="Alerta de sensor",
+            body="El valor del sensor se encuentra por encima del umbral permitido"
+        ),
+        token=device_token
+    )
+
+    response = messaging.send(message)
+    print('Mensaje enviado con exito: ', response)
+
 async def check_and_update_realtime_database(device_id, value):
     device_ref = ref.child('devices').child(device_id)
     if not device_ref.get():
@@ -35,7 +51,8 @@ async def check_and_update_realtime_database(device_id, value):
 
 async def update_realtime_database(device_id, value):
     category = categorize_value(value, air_quality_ranges)
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    lima_tz = pytz.timezone('America/Lima')
+    timestamp = datetime.datetime.now(lima_tz).strftime('%Y-%m-%d %H:%M:%S')
     data = {
         'category': category,
         'timestamp': timestamp,
@@ -44,9 +61,13 @@ async def update_realtime_database(device_id, value):
     ref.child('devices').child(device_id).update(data)
 
 async def handle_device(device):
+    global last_readings
     user_id = device.get('userID')
     device_id = device.get('deviceID')
     device_type = device.get('deviceType')
+
+    if device_id not in last_readings:
+        last_readings[device_id] = [0, 0, 0]
 
     # Suscribirse a MQTT y obtener el mensaje
     message_received = await subscribe_mqtt(device_id, user_id)
@@ -57,6 +78,15 @@ async def handle_device(device):
 
     message = json.loads(message_received)
     value = message[device_type]
+
+    last_readings[device_id].append(value)
+    if len(last_readings[device_id]) > 3:
+        last_readings[device_id].pop(0)
+
+    if sum(1 for read in last_readings[device_id] if read > PELIGROSO_THRESHOLD) >= 2:
+        last_readings[device_id] = [0, 0, 0]
+        await send_alert_notification(device.get('deviceToken'))
+
     await check_and_update_realtime_database(device_id, value)
 
 
@@ -80,10 +110,10 @@ def categorize_value(value, ranges):
 
 # Rangos para la categorización
 air_quality_ranges = {
-    (10, 300): "Peligroso",
-    (300, 400): "Moderado",
-    (400, 500): "Bueno",
-    (500, 10000): "Insalubre",
+    (1000, 1500): "Bajo",
+    (1500, 2000): "Normal",
+    (2000, 2500): "Peligroso",
+    (2500, 10000): "Muy Peligroso",
 }
 
 humidity_ranges = {
