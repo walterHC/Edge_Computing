@@ -5,7 +5,7 @@ import json
 from config.firebase_config import db, ref
 from edge_module_mqtt.mqtt_client import MQTTClient, MQTT_CONFIG
 
-async def subscribe_mqtt(device_id, user_id, device_type):
+async def subscribe_mqtt(device_id, user_id):
     mqtt_client = MQTTClient(userID=user_id, topic=f"esp32/{device_id}/pub", **MQTT_CONFIG)
     mqtt_client.connect()
     mqtt_client.start()
@@ -20,9 +20,9 @@ async def subscribe_mqtt(device_id, user_id, device_type):
     mqtt_client.stop()
     return message
 
-async def check_and_update_realtime_database(device_id, value, device_type):
+async def check_and_update_realtime_database(device_id, value):
     device_ref = ref.child('devices').child(device_id)
-    if not device_ref.get():  # Si el dispositivo no existe, inicializarlo
+    if not device_ref.get():
         device_ref.set({
             'category': 'Unknown',
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -49,14 +49,15 @@ async def handle_device(device):
     device_type = device.get('deviceType')
 
     # Suscribirse a MQTT y obtener el mensaje
-    message_received = await subscribe_mqtt(device_id, user_id, device_type)
+    message_received = await subscribe_mqtt(device_id, user_id)
 
     if message_received is None:
+        print(f"No se recibió mensaje para el dispositivo {device_id}")
         return
 
     message = json.loads(message_received)
     value = message[device_type]
-    await check_and_update_realtime_database(device_id, value, device_type)
+    await check_and_update_realtime_database(device_id, value)
 
 
 async def real_time_update_data_task():

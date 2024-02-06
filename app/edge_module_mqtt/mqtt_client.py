@@ -8,7 +8,7 @@ load_dotenv()
 
 # Configuraciones del broker MQTT
 MQTT_CONFIG = {
-    "broker": "192.168.0.113",
+    "broker": "192.168.0.109",
     "puerto": 1883,
     "usuario": os.getenv('MQTT_USERNAME'),
     "contrasena": os.getenv('MQTT_PASSWORD')

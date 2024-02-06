@@ -10,7 +10,7 @@ firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://team-pe-default-rtdb.firebaseio.com/'
 })
 
-# Paso 3: referencia a la base de datos RT
+#referencia a la base de datos RT
 ref = rt_db.reference('/')
 
 #instancia de Firebase Store
